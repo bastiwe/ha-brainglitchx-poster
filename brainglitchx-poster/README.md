@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.4
+
+Keeps successfully published X posts when only the first comment fails and improves 403 diagnostics.
+
 # BrainGlitchX Poster HA Add-on v2.8.3
 
 Adds OpenAI image quality setting with low-cost default.

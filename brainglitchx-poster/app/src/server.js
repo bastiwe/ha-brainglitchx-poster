@@ -341,7 +341,13 @@ async function publishExistingPost(id) {
   try {
     const latest = claim.post;
     const result = await publishPost(latest);
-    updatePost(latest.id, { status: 'posted', posted_at: nowLocalMinute(), x_post_id: result.postId, x_comment_id: result.commentId, error: null });
+    updatePost(latest.id, {
+      status: 'posted',
+      posted_at: nowLocalMinute(),
+      x_post_id: result.postId,
+      x_comment_id: result.commentId,
+      error: result.commentError ? `First comment failed: ${result.commentError}` : null
+    });
     return result;
   } catch (e) {
     updatePost(Number(id), { status: 'failed', error: readableError(e) });
@@ -998,7 +1004,13 @@ function normalizeSchedule(value) {
 }
 
 function readableError(e) {
-  if (e?.data?.title || e?.data?.detail) return `${e.data.title || 'API error'}: ${e.data.detail || e.message}`;
+  if (e?.data?.title || e?.data?.detail) {
+    const base = `${e.data.title || 'API error'}: ${e.data.detail || e.message}`;
+    if (e.code === 403 || e.data?.status === 403) {
+      return `${base} This can happen when X rejects duplicate or otherwise restricted post/reply content. Check whether the post already appeared on X before retrying.`;
+    }
+    return base;
+  }
   return e?.message || String(e);
 }
 

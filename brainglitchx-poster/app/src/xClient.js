@@ -50,15 +50,26 @@ export async function publishPost(post) {
   const postId = created.data.id;
 
   let commentId = null;
+  let commentError = null;
   if (post.first_comment && post.first_comment.trim()) {
-    const reply = await client.v2.tweet({
-      text: post.first_comment.trim(),
-      reply: { in_reply_to_tweet_id: postId }
-    });
-    commentId = reply.data.id;
+    try {
+      const reply = await client.v2.tweet({
+        text: post.first_comment.trim(),
+        reply: { in_reply_to_tweet_id: postId }
+      });
+      commentId = reply.data.id;
+    } catch (e) {
+      commentError = readableXError(e);
+      console.error('[x:reply-failed-after-post]', { postId, error: commentError });
+    }
   }
 
-  return { postId, commentId };
+  return { postId, commentId, commentError };
+}
+
+function readableXError(e) {
+  if (e?.data?.title || e?.data?.detail) return `${e.data.title || 'X API error'}: ${e.data.detail || e.message}`;
+  return e?.message || String(e);
 }
 
 function normalizeMetrics(tweet) {
