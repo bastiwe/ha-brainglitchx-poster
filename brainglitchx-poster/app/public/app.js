@@ -1,19 +1,35 @@
 (function () {
   function qs(sel, root = document) { return root.querySelector(sel); }
 
-
-  function ingressAssetUrl(relPath) {
-    const clean = String(relPath || '').replace(/^\/+/, '');
+  function ingressRootPath() {
     const path = window.location.pathname || '/';
     const marker = '/api/hassio_ingress/';
     const idx = path.indexOf(marker);
-    if (idx >= 0) {
-      const prefixStart = path.slice(0, idx + marker.length);
-      const rest = path.slice(idx + marker.length).split('/').filter(Boolean);
-      if (rest.length > 0) return prefixStart + rest[0] + '/' + clean;
-      return prefixStart + clean;
+    if (idx < 0) return null;
+    const prefixStart = path.slice(0, idx + marker.length);
+    const rest = path.slice(idx + marker.length).split('/').filter(Boolean);
+    if (!rest.length) return prefixStart;
+    return prefixStart + rest[0] + '/';
+  }
+
+  function normalizeIngressLocation() {
+    const root = ingressRootPath();
+    if (!root) return;
+    if (window.location.pathname === root.slice(0, -1)) {
+      window.history.replaceState(null, '', root + window.location.search + window.location.hash);
     }
-    return new URL(clean, window.location.href).toString();
+  }
+
+  function appRootUrl(path = '') {
+    const clean = String(path || '').replace(/^\/+/, '');
+    const root = ingressRootPath();
+    if (root) return root + clean;
+    return new URL(clean || '.', window.location.href).toString();
+  }
+
+  function ingressAssetUrl(relPath) {
+    const clean = String(relPath || '').replace(/^\/+/, '');
+    return appRootUrl(clean);
   }
 
   function rewriteIngressAssets() {
@@ -51,13 +67,13 @@
   }
 
   function queueUrl() {
-    const url = new URL(window.location.href);
+    const url = new URL(appRootUrl());
     url.searchParams.set('tab', 'queue');
     return url.pathname + '?' + url.searchParams.toString();
   }
 
   async function pollJob(jobId, panel, submitButton) {
-    const url = new URL(`jobs/${jobId}`, window.location.href);
+    const url = new URL(appRootUrl(`jobs/${jobId}`));
     const current = new URL(window.location.href);
     if (current.searchParams.get('key')) url.searchParams.set('key', current.searchParams.get('key'));
 
@@ -74,6 +90,7 @@
     }
   }
 
+  normalizeIngressLocation();
   document.addEventListener('DOMContentLoaded', rewriteIngressAssets);
 
   document.addEventListener('submit', async (event) => {

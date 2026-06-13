@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8
+
+Fixes additional Home Assistant Ingress navigation/404 cases and skips local dry-run IDs during analytics sync.
+
 # BrainGlitchX Poster HA Add-on v2.7
 
 Fixes Home Assistant Ingress navigation after editing, Back to queue links, and Post Now form routing.

@@ -428,6 +428,10 @@ function appLink(req, params = {}) {
   return `${prefix || './'}${qs ? '?' + qs : ''}`;
 }
 
+function backLink(req, tab = 'queue', label = 'Back') {
+  return `<p><a href="${appLink(req, { tab })}">${escapeHtml(label)}</a></p>`;
+}
+
 function tabNav(req, active) {
   const tabs = [
     ['queue', 'Queue'],
@@ -484,7 +488,7 @@ app.get('/', requirePassword, (req, res) => {
     queue: `
       <section class="card">
         <h2>Queue</h2>
-        <form method="get" action="." class="filters">
+        <form method="get" action="${appLink(req)}" class="filters">
           ${req.query.key ? `<input type="hidden" name="key" value="${escapeAttr(req.query.key)}">` : ''}
           <input type="hidden" name="tab" value="queue">
           <select name="status"><option value="">All statuses</option>${['draft','scheduled','posting','posted','failed'].map(s => `<option value="${s}" ${status === s ? 'selected' : ''}>${s}</option>`).join('')}</select>
@@ -798,7 +802,7 @@ app.post('/generate', requirePassword, async (req, res) => {
     res.redirect(appLink(req, { tab: 'queue' }));
   } catch (e) {
     console.error('OpenAI generation failed', e);
-    res.status(500).send(page(req, 'Generation failed', `<p>${escapeHtml(readableError(e))}</p><p><a href=".${keyQuery(req)}">Back</a></p>`));
+    res.status(500).send(page(req, 'Generation failed', `<p>${escapeHtml(readableError(e))}</p>${backLink(req, 'generate', 'Back')}`));
   }
 });
 
@@ -837,10 +841,10 @@ app.post('/generate-day', requirePassword, async (req, res) => {
       });
       created++;
     }
-    res.send(page(req, 'Day planned', `<p>Created ${created} BrainGlitchX queue items.</p><p><a href=".${keyQuery(req)}">Back to queue</a></p>`));
+    res.send(page(req, 'Day planned', `<p>Created ${created} BrainGlitchX queue items.</p>${backLink(req, 'queue', 'Back to queue')}`));
   } catch (e) {
     console.error('Full-day generation failed', e);
-    res.status(500).send(page(req, 'Full-day generation failed', `<p>${escapeHtml(readableError(e))}</p><p><a href=".${keyQuery(req)}">Back</a></p>`));
+    res.status(500).send(page(req, 'Full-day generation failed', `<p>${escapeHtml(readableError(e))}</p>${backLink(req, 'dayplanner', 'Back')}`));
   }
 });
 
@@ -863,7 +867,7 @@ app.post('/import', requirePassword, importUpload.single('queue'), (req, res) =>
     imported++;
   }
   fs.unlink(req.file.path, () => {});
-  res.send(page(req, 'Import complete', `<p>Imported ${imported} posts as queue items.</p><p><a href=".${keyQuery(req)}">Back to queue</a></p>`));
+  res.send(page(req, 'Import complete', `<p>Imported ${imported} posts as queue items.</p>${backLink(req, 'queue', 'Back to queue')}`));
 });
 
 
@@ -871,6 +875,7 @@ app.post('/import', requirePassword, importUpload.single('queue'), (req, res) =>
 async function syncAnalytics({ limit = 50 } = {}) {
   const posts = postedPostsForAnalytics(limit);
   let synced = 0;
+  let skipped = 0;
   const errors = [];
   for (const post of posts) {
     try {
@@ -879,18 +884,24 @@ async function syncAnalytics({ limit = 50 } = {}) {
       synced++;
     } catch (e) {
       const message = readableError(e);
+      if (e?.code === 'INVALID_X_POST_ID') {
+        updatePost(post.id, { analytics_synced_at: nowLocalMinute(), error: message });
+        skipped++;
+        console.warn('Analytics sync skipped', post.id, message);
+        continue;
+      }
       updatePost(post.id, { analytics_synced_at: nowLocalMinute(), error: `Analytics sync failed: ${message}` });
       errors.push({ id: post.id, error: message });
       console.error('Analytics sync failed', post.id, e);
     }
   }
-  return { requested: posts.length, synced, errors };
+  return { requested: posts.length, synced, skipped, errors };
 }
 
 app.post('/analytics/sync', requirePassword, async (req, res) => {
   try {
     const result = await syncAnalytics({ limit: Number(req.body.limit || process.env.ANALYTICS_SYNC_LIMIT || 50) });
-    res.send(page(req, 'Analytics synced', `<p>Synced ${result.synced}/${result.requested} posts.</p>${result.errors.length ? `<pre>${escapeHtml(JSON.stringify(result.errors, null, 2))}</pre>` : ''}<p><a href="${appLink(req, { tab: 'analytics' })}">Back to analytics</a></p>`));
+    res.send(page(req, 'Analytics synced', `<p>Synced ${result.synced}/${result.requested} posts.${result.skipped ? ` Skipped ${result.skipped} item(s) without a real X post id.` : ''}</p>${result.errors.length ? `<pre>${escapeHtml(JSON.stringify(result.errors, null, 2))}</pre>` : ''}<p><a href="${appLink(req, { tab: 'analytics' })}">Back to analytics</a></p>`));
   } catch (e) {
     res.status(500).send(page(req, 'Analytics sync failed', `<p>${escapeHtml(readableError(e))}</p><p><a href="${appLink(req, { tab: 'analytics' })}">Back</a></p>`));
   }
@@ -943,7 +954,7 @@ async function runScheduler(options = {}) {
 cron.schedule('* * * * *', () => runScheduler().catch(e => console.error('[scheduler] unexpected error', e)), { timezone: appTimezone() });
 if (process.env.ANALYTICS_AUTO_SYNC === 'true') {
   const expr = process.env.ANALYTICS_CRON || '17 * * * *';
-  cron.schedule(expr, () => syncAnalytics({ limit: Number(process.env.ANALYTICS_SYNC_LIMIT || 50) }).then(r => console.log(`[analytics] synced ${r.synced}/${r.requested}`)).catch(e => console.error('[analytics] sync failed', e)), { timezone: appTimezone() });
+  cron.schedule(expr, () => syncAnalytics({ limit: Number(process.env.ANALYTICS_SYNC_LIMIT || 50) }).then(r => console.log(`[analytics] synced ${r.synced}/${r.requested}, skipped ${r.skipped || 0}`)).catch(e => console.error('[analytics] sync failed', e)), { timezone: appTimezone() });
   console.log(`Analytics auto-sync active. CRON=${expr}`);
 }
 console.log(`Scheduler active. TIMEZONE=${appTimezone()} current=${nowLocalMinute()}`);

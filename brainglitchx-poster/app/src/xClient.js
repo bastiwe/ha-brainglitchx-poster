@@ -77,6 +77,11 @@ function normalizeMetrics(tweet) {
 
 export async function fetchPostAnalytics(postId) {
   if (!postId) throw new Error('Missing postId');
+  if (!/^\d+$/.test(String(postId))) {
+    const err = new Error(`Skipping analytics for non-X post id: ${postId}`);
+    err.code = 'INVALID_X_POST_ID';
+    throw err;
+  }
   const client = getClient();
   const requestedFields = ['public_metrics'];
   if (process.env.ANALYTICS_PRIVATE_METRICS === 'true') {
