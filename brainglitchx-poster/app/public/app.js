@@ -23,8 +23,28 @@
   function appRootUrl(path = '') {
     const clean = String(path || '').replace(/^\/+/, '');
     const root = ingressRootPath();
-    if (root) return root + clean;
+    if (root) return new URL(root + clean, window.location.origin).toString();
     return new URL(clean || '.', window.location.href).toString();
+  }
+
+  function isExternalOrSpecialUrl(value) {
+    return /^(?:[a-z][a-z0-9+.-]*:|#)/i.test(String(value || ''));
+  }
+
+  function rewriteIngressNavigation() {
+    if (!ingressRootPath()) return;
+    document.querySelectorAll('a[href]').forEach((el) => {
+      const raw = el.getAttribute('href');
+      if (!raw || isExternalOrSpecialUrl(raw) || el.hasAttribute('data-bg-url')) return;
+      const clean = raw.replace(/^(\.\/|\.\.\/)+/, '').replace(/^\/+/, '');
+      el.setAttribute('href', appRootUrl(clean));
+    });
+    document.querySelectorAll('form[action]').forEach((form) => {
+      const raw = form.getAttribute('action');
+      if (!raw || isExternalOrSpecialUrl(raw)) return;
+      const clean = raw.replace(/^(\.\/|\.\.\/)+/, '').replace(/^\/+/, '');
+      form.setAttribute('action', appRootUrl(clean));
+    });
   }
 
   function ingressAssetUrl(relPath) {
@@ -69,7 +89,7 @@
   function queueUrl() {
     const url = new URL(appRootUrl());
     url.searchParams.set('tab', 'queue');
-    return url.pathname + '?' + url.searchParams.toString();
+    return url.toString();
   }
 
   async function pollJob(jobId, panel, submitButton) {
@@ -91,7 +111,10 @@
   }
 
   normalizeIngressLocation();
-  document.addEventListener('DOMContentLoaded', rewriteIngressAssets);
+  document.addEventListener('DOMContentLoaded', () => {
+    rewriteIngressNavigation();
+    rewriteIngressAssets();
+  });
 
   document.addEventListener('submit', async (event) => {
     const form = event.target.closest('form.async-generate');

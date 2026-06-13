@@ -106,7 +106,10 @@ function hiddenKey(req) {
 
 function relativePrefix(req) {
   const depth = String(req.path || '').split('/').filter(Boolean).length;
-  return depth > 0 ? '../'.repeat(depth) : '';
+  // Browser-relative URLs are resolved from the current route's directory.
+  // For /edit/1, "../" returns to the add-on root; "../../" escapes the
+  // Home Assistant Ingress token path and causes /api/hassio_ingress/ 404s.
+  return depth > 1 ? '../'.repeat(depth - 1) : '';
 }
 
 function page(req, title, body) {

@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.1
+
+Fixes v2.8 Ingress URL regression for Generate Draft, Save Draft, Run Scheduler, Back links and Post Now.
+
 # BrainGlitchX Poster HA Add-on v2.8
 
 Fixes additional Home Assistant Ingress navigation/404 cases and skips local dry-run IDs during analytics sync.
