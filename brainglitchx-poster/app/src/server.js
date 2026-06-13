@@ -417,6 +417,7 @@ function postForm(req, post = null) {
       <label>${isEdit ? 'Replace image' : 'Image'} <input type="file" name="image" accept="image/*"></label>
       <div class="button-row">
         <button type="submit" name="action" value="save">${isEdit ? 'Save changes' : 'Save draft'}</button>
+        ${isEdit ? '<button type="submit" name="action" value="generate_image" class="secondary" onclick="this.disabled=true; this.textContent=\'Generating image...\'; this.form.submit(); return false;">Generate image</button>' : ''}
         <button type="submit" name="action" value="schedule">Save & schedule</button>
         <button type="submit" name="action" value="post_now" class="secondary" onclick="if(!confirm('Post this to X now?')) return false; this.disabled=true; this.textContent='Posting...'; this.form.submit(); return false;">Post now</button>
       </div>
@@ -636,6 +637,15 @@ app.post('/edit/:id', requirePassword, upload.single('image'), async (req, res) 
   if (req.body.remove_image === '1') image_path = null;
   if (req.file) image_path = path.join('public', 'uploads', req.file.filename).replaceAll('\\','/');
   const action = req.body.action || 'save';
+  if (action === 'generate_image') {
+    try {
+      image_path = await generateOpenAIImage({ prompt: req.body.image_prompt || '', uploadDir });
+    } catch (e) {
+      updatePost(existing.id, { error: readableError(e) });
+      console.error('[image:generate-for-post-failed]', existing.id, e);
+      return res.status(500).send(page(req, 'Image generation failed', `<p>${escapeHtml(readableError(e))}</p><p><a href="${rel(req, `edit/${existing.id}`)}${keyQuery(req)}">Back to edit</a></p>`));
+    }
+  }
   const status = action === 'post_now' ? 'posting' : action === 'schedule' ? 'scheduled' : (req.body.status || 'draft');
   const scheduled_at = action === 'schedule' ? (req.body.scheduled_at || addMinutesToLocal(nowLocalMinute(), 15)) : (req.body.scheduled_at || null);
   updatePost(existing.id, {

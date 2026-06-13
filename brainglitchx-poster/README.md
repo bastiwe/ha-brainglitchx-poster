@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.6
+
+Adds OpenAI image generation for existing draft/edit posts.
+
 # BrainGlitchX Poster HA Add-on v2.8.5
 
 Adds X character-limit guards and live counters for post text and first comments.
