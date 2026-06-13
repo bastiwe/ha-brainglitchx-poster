@@ -172,6 +172,7 @@
       // so FormData caused category/topic/status to arrive empty at the backend.
       const params = new URLSearchParams();
       for (const [key, value] of new FormData(form).entries()) params.append(key, value);
+      if (event.submitter?.name) params.set(event.submitter.name, event.submitter.value || '');
       const res = await fetch(form.action, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },

@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.7
+
+Fixes async Generate & Schedule button mode so generated posts become scheduled.
+
 # BrainGlitchX Poster HA Add-on v2.8.6
 
 Adds OpenAI image generation for existing draft/edit posts.
