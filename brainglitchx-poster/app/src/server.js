@@ -421,7 +421,11 @@ function appLink(req, params = {}) {
     if (v !== undefined && v !== null && v !== '') q.set(k, v);
   }
   const qs = q.toString();
-  return `${qs ? '?' + qs : './'}`;
+  const prefix = relativePrefix(req);
+  // Under Home Assistant Ingress, routes like /edit/1 or /publish/1 live below
+  // /api/hassio_ingress/<token>/. Navigation must climb back to the add-on root.
+  // A plain ?tab=queue would stay on /edit/1?tab=queue and break all tabs/forms.
+  return `${prefix || './'}${qs ? '?' + qs : ''}`;
 }
 
 function tabNav(req, active) {
@@ -582,7 +586,7 @@ app.get('/', requirePassword, (req, res) => {
 app.get('/edit/:id', requirePassword, (req, res) => {
   const post = getPost(req.params.id);
   if (!post) return res.status(404).send('Not found');
-  res.send(page(req, `Edit Post #${post.id}`, `${headerBlock(req)}${tabNav(req, 'queue')}<p><a class="buttonlink" href="${rel(req, '')}${keyQuery(req)}">← Back to queue</a></p><section class="card"><h2>Edit Post #${post.id}</h2>${postForm(req, post)}</section>`));
+  res.send(page(req, `Edit Post #${post.id}`, `${headerBlock(req)}${tabNav(req, 'queue')}<p><a class="buttonlink" href="${appLink(req, { tab: 'queue' })}">← Back to queue</a></p><section class="card"><h2>Edit Post #${post.id}</h2>${postForm(req, post)}</section>`));
 });
 
 app.post('/posts', requirePassword, upload.single('image'), async (req, res) => {
