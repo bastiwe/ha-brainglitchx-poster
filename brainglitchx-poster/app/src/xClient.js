@@ -5,6 +5,7 @@ import path from 'path';
 TwitterApiV2Settings.deprecationWarnings = false;
 
 const required = ['X_APP_KEY','X_APP_SECRET','X_ACCESS_TOKEN','X_ACCESS_SECRET'];
+const X_TEXT_LIMIT = 280;
 
 function getClient() {
   for (const key of required) {
@@ -27,6 +28,9 @@ function guessMimeType(filePath) {
 }
 
 export async function publishPost(post) {
+  assertTweetLength(post.text, 'Post text');
+  if (post.first_comment && post.first_comment.trim()) assertTweetLength(post.first_comment.trim(), 'First comment');
+
   if (process.env.DRY_RUN === 'true') {
     console.log('[DRY_RUN] Would post:', post.text);
     return { postId: `dry-${Date.now()}`, commentId: post.first_comment ? `dry-comment-${Date.now()}` : null };
@@ -65,6 +69,15 @@ export async function publishPost(post) {
   }
 
   return { postId, commentId, commentError };
+}
+
+function assertTweetLength(text = '', label = 'Text') {
+  const length = [...String(text || '')].length;
+  if (length > X_TEXT_LIMIT) {
+    const err = new Error(`${label} is ${length - X_TEXT_LIMIT} characters over the X limit (${length}/${X_TEXT_LIMIT}). Shorten it before posting.`);
+    err.code = 'X_TEXT_TOO_LONG';
+    throw err;
+  }
 }
 
 function readableXError(e) {

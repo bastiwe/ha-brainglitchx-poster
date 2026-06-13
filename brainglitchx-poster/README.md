@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.5
+
+Adds X character-limit guards and live counters for post text and first comments.
+
 # BrainGlitchX Poster HA Add-on v2.8.4
 
 Keeps successfully published X posts when only the first comment fails and improves 403 diagnostics.

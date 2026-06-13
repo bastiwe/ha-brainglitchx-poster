@@ -62,6 +62,29 @@
     });
   }
 
+  function updateCharCounter(textarea) {
+    const limit = Number(textarea.dataset.charLimit || 0);
+    if (!limit) return true;
+    let counter = textarea.nextElementSibling;
+    if (!counter || !counter.classList?.contains('char-counter')) {
+      counter = document.createElement('small');
+      counter.className = 'char-counter';
+      textarea.insertAdjacentElement('afterend', counter);
+    }
+    const length = Array.from(textarea.value || '').length;
+    const remaining = limit - length;
+    counter.textContent = remaining >= 0 ? `${remaining} characters left` : `${Math.abs(remaining)} characters over limit`;
+    counter.classList.toggle('over', remaining < 0);
+    return remaining >= 0;
+  }
+
+  function setupCharCounters() {
+    document.querySelectorAll('textarea[data-char-limit]').forEach((textarea) => {
+      updateCharCounter(textarea);
+      textarea.addEventListener('input', () => updateCharCounter(textarea));
+    });
+  }
+
   function setProgress(panel, pct, message, status, result) {
     panel.hidden = false;
     const fill = qs('#progress-fill', panel);
@@ -114,9 +137,19 @@
   document.addEventListener('DOMContentLoaded', () => {
     rewriteIngressNavigation();
     rewriteIngressAssets();
+    setupCharCounters();
   });
 
   document.addEventListener('submit', async (event) => {
+    const limited = Array.from(event.target.querySelectorAll?.('textarea[data-char-limit]') || []);
+    const tooLong = limited.filter((textarea) => !updateCharCounter(textarea));
+    if (tooLong.length) {
+      event.preventDefault();
+      tooLong[0].focus();
+      alert('Please shorten the post/comment before publishing.');
+      return;
+    }
+
     const form = event.target.closest('form.async-generate');
     if (!form) return;
     event.preventDefault();

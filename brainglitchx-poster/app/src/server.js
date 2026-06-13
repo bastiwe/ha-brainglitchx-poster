@@ -409,8 +409,8 @@ function postForm(req, post = null) {
         </select></label>
       </div>
       <label>Schedule <input type="datetime-local" name="scheduled_at" value="${escapeAttr(toLocalInputValue(post?.scheduled_at))}"><small>Uses your local time. No manual 2-hour workaround needed anymore.</small></label>
-      <label>Post text <textarea name="text" required rows="6">${escapeHtml(post?.text || '')}</textarea></label>
-      <label>First comment <textarea name="first_comment" rows="3">${escapeHtml(post?.first_comment || '')}</textarea></label>
+      <label>Post text <textarea name="text" required rows="6" data-char-limit="280">${escapeHtml(post?.text || '')}</textarea></label>
+      <label>First comment <textarea name="first_comment" rows="3" data-char-limit="280">${escapeHtml(post?.first_comment || '')}</textarea></label>
       <label>Image prompt <textarea name="image_prompt" rows="3" placeholder="Prompt for image generation, no text, no watermark...">${escapeHtml(post?.image_prompt || '')}</textarea></label>
       <label>Verification query <input name="verification_query" placeholder="Search query to fact-check before posting" value="${escapeAttr(post?.verification_query || '')}"></label>
       ${post?.image_path ? `<div class="current-image"><p>Current image:</p>${imageLink(req, post.image_path, 'thumb large')}<p><a href="${escapeAttr(imageUrl(req, post.image_path))}" data-bg-url="${escapeAttr(publicImageUrl(post.image_path))}" target="_blank" rel="noopener">Open full-size image</a></p><label class="inline danger-check"><input type="checkbox" name="remove_image" value="1"> Remove current image</label></div>` : ''}

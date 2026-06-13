@@ -107,8 +107,8 @@ Requirements:
 - The fact must be plausibly verifiable and not medical/legal/financial advice.
 - Avoid overused facts when possible, but it must still be easy to understand.
 - Do not repeat, lightly reword, or use the same core topic as any already-used fact above.
-- Post text: max 4 short paragraphs, under 280 characters if possible.
-- First comment: short engagement booster or helpful extra context.
+- Post text: MUST be 280 characters or fewer, including spaces and line breaks.
+- First comment: MUST be 280 characters or fewer, short engagement booster or helpful extra context.
 - Image prompt: create a photorealistic image prompt with no text, no logos, no watermarks. Prefer a single strong visual subject.
 - Include a search query that I can use to verify the fact before posting.
 
@@ -157,8 +157,8 @@ Requirements for every item:
 - Avoid overused facts when possible, but each fact must be easy to understand.
 - Do not repeat, lightly reword, or use the same core topic as any already-used fact above.
 - Items in this batch must also be distinct from each other.
-- Post text: max 4 short paragraphs, under 280 characters if possible.
-- First comment: short engagement booster or helpful extra context.
+- Post text: MUST be 280 characters or fewer, including spaces and line breaks.
+- First comment: MUST be 280 characters or fewer, short engagement booster or helpful extra context.
 - Image prompt: photorealistic, no text, no logos, no watermarks, single strong visual subject when possible.
 - Include a search query for manual fact-checking.
 
