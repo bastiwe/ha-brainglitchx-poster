@@ -24,6 +24,7 @@ export OPENAI_API_KEY="$(get_opt openai_api_key '')"
 export OPENAI_MODEL="$(get_opt openai_model gpt-4.1-mini)"
 export OPENAI_IMAGE_MODEL="$(get_opt openai_image_model gpt-image-1)"
 export OPENAI_IMAGE_SIZE="$(get_opt openai_image_size 1024x1024)"
+export OPENAI_IMAGE_QUALITY="$(get_opt openai_image_quality low)"
 export DEDUPE_MEMORY_LIMIT="$(get_opt dedupe_memory_limit 300)"
 
 # Persist DB/imports/uploads under /data so Home Assistant add-on backups can include them.
@@ -35,7 +36,7 @@ ln -s /data/uploads /app/public/uploads
 echo "BrainGlitchX Poster add-on starting..."
 echo "Loaded Home Assistant add-on options from $OPTIONS"
 echo "PORT=$PORT HA_INGRESS=$HA_INGRESS TIMEZONE=$TIMEZONE DRY_RUN=$DRY_RUN SCHEDULER_DEBUG=$SCHEDULER_DEBUG"
-echo "BASE_URL=$BASE_URL OPENAI_MODEL=$OPENAI_MODEL OPENAI_IMAGE_MODEL=$OPENAI_IMAGE_MODEL OPENAI_IMAGE_SIZE=$OPENAI_IMAGE_SIZE DEDUPE_MEMORY_LIMIT=$DEDUPE_MEMORY_LIMIT"
+echo "BASE_URL=$BASE_URL OPENAI_MODEL=$OPENAI_MODEL OPENAI_IMAGE_MODEL=$OPENAI_IMAGE_MODEL OPENAI_IMAGE_SIZE=$OPENAI_IMAGE_SIZE OPENAI_IMAGE_QUALITY=$OPENAI_IMAGE_QUALITY DEDUPE_MEMORY_LIMIT=$DEDUPE_MEMORY_LIMIT"
 echo "X credentials configured: app_key=$( [ -n "$X_APP_KEY" ] && echo yes || echo no ) access_token=$( [ -n "$X_ACCESS_TOKEN" ] && echo yes || echo no )"
 echo "OpenAI key configured: $( [ -n "$OPENAI_API_KEY" ] && echo yes || echo no )"
 exec node /app/src/server.js

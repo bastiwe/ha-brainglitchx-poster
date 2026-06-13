@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.3
+
+Adds OpenAI image quality setting with low-cost default.
+
 # BrainGlitchX Poster HA Add-on v2.8.2
 
 Fixes OpenAI image generation default size for gpt-image-1.

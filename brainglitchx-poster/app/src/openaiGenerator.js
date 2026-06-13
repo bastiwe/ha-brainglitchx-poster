@@ -6,8 +6,11 @@ import crypto from 'crypto';
 const TEXT_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
 const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1';
 const SUPPORTED_IMAGE_SIZES = new Set(['1024x1024', '1024x1536', '1536x1024', 'auto']);
+const SUPPORTED_IMAGE_QUALITIES = new Set(['low', 'medium', 'high', 'auto']);
 const requestedImageSize = process.env.OPENAI_IMAGE_SIZE || '1024x1024';
+const requestedImageQuality = process.env.OPENAI_IMAGE_QUALITY || 'low';
 const IMAGE_SIZE = SUPPORTED_IMAGE_SIZES.has(requestedImageSize) ? requestedImageSize : '1024x1024';
+const IMAGE_QUALITY = SUPPORTED_IMAGE_QUALITIES.has(requestedImageQuality) ? requestedImageQuality : 'low';
 
 function getOpenAIClient() {
   if (!process.env.OPENAI_API_KEY) {
@@ -203,6 +206,7 @@ export async function generateOpenAIImage({ prompt, uploadDir }) {
     model: IMAGE_MODEL,
     prompt: fullPrompt,
     size: IMAGE_SIZE,
+    quality: IMAGE_QUALITY,
   });
 
   const item = response.data?.[0];
