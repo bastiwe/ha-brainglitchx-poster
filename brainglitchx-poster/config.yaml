@@ -1,5 +1,5 @@
 name: BrainGlitchX Poster
-version: "2.8.1"
+version: "2.8.2"
 slug: brainglitchx_poster
 description: AI-powered X post generator, queue, scheduler and analytics sync for BrainGlitchX. HA Ingress path/link, exactly-once publish safety, Ingress-safe tabs and image links.
 url: https://bastiwe.de
@@ -31,7 +31,7 @@ options:
   openai_api_key: ""
   openai_model: "gpt-4.1-mini"
   openai_image_model: "gpt-image-1"
-  openai_image_size: "512x512"
+  openai_image_size: "1024x1024"
   dedupe_memory_limit: 300
 schema:
   app_password: password
@@ -46,5 +46,5 @@ schema:
   openai_api_key: password?
   openai_model: str
   openai_image_model: str
-  openai_image_size: list(512x512|1024x1024|1536x1024|1024x1536|auto)
+  openai_image_size: list(1024x1024|1536x1024|1024x1536|auto)
   dedupe_memory_limit: int(50,2000)

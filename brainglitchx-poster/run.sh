@@ -23,7 +23,7 @@ export X_ACCESS_SECRET="$(get_opt x_access_secret '')"
 export OPENAI_API_KEY="$(get_opt openai_api_key '')"
 export OPENAI_MODEL="$(get_opt openai_model gpt-4.1-mini)"
 export OPENAI_IMAGE_MODEL="$(get_opt openai_image_model gpt-image-1)"
-export OPENAI_IMAGE_SIZE="$(get_opt openai_image_size 512x512)"
+export OPENAI_IMAGE_SIZE="$(get_opt openai_image_size 1024x1024)"
 export DEDUPE_MEMORY_LIMIT="$(get_opt dedupe_memory_limit 300)"
 
 # Persist DB/imports/uploads under /data so Home Assistant add-on backups can include them.

@@ -5,7 +5,9 @@ import crypto from 'crypto';
 
 const TEXT_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
 const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1';
-const IMAGE_SIZE = process.env.OPENAI_IMAGE_SIZE || '1024x1024';
+const SUPPORTED_IMAGE_SIZES = new Set(['1024x1024', '1024x1536', '1536x1024', 'auto']);
+const requestedImageSize = process.env.OPENAI_IMAGE_SIZE || '1024x1024';
+const IMAGE_SIZE = SUPPORTED_IMAGE_SIZES.has(requestedImageSize) ? requestedImageSize : '1024x1024';
 
 function getOpenAIClient() {
   if (!process.env.OPENAI_API_KEY) {

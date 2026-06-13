@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.2
+
+Fixes OpenAI image generation default size for gpt-image-1.
+
 # BrainGlitchX Poster HA Add-on v2.8.1
 
 Fixes v2.8 Ingress URL regression for Generate Draft, Save Draft, Run Scheduler, Back links and Post Now.
