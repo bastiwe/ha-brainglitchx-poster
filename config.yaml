@@ -1,0 +1,50 @@
+name: BrainGlitchX Poster
+version: "2.6.0"
+slug: brainglitchx_poster
+description: AI-powered X post generator, queue, scheduler and analytics sync for BrainGlitchX. HA Ingress path/link, exactly-once publish safety, Ingress-safe tabs and image links.
+url: https://bastiwe.de
+arch:
+  - aarch64
+  - amd64
+  - armv7
+startup: services
+boot: auto
+init: false
+ingress: true
+ingress_port: 3000
+panel_icon: mdi:brain
+panel_title: BrainGlitchX
+ports: {}
+ports_description: {}
+map:
+  - addon_config:rw
+options:
+  app_password: "change-me-now"
+  timezone: "Europe/Berlin"
+  dry_run: true
+  scheduler_debug: false
+  base_url: ""
+  x_app_key: ""
+  x_app_secret: ""
+  x_access_token: ""
+  x_access_secret: ""
+  openai_api_key: ""
+  openai_model: "gpt-4.1-mini"
+  openai_image_model: "gpt-image-1"
+  openai_image_size: "512x512"
+  dedupe_memory_limit: 300
+schema:
+  app_password: password
+  timezone: str
+  dry_run: bool
+  scheduler_debug: bool
+  base_url: str?
+  x_app_key: str?
+  x_app_secret: password?
+  x_access_token: password?
+  x_access_secret: password?
+  openai_api_key: password?
+  openai_model: str
+  openai_image_model: str
+  openai_image_size: list(512x512|1024x1024|1536x1024|1024x1536|auto)
+  dedupe_memory_limit: int(50,2000)

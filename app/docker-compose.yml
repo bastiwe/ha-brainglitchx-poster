@@ -1,0 +1,11 @@
+services:
+  brainglitchx-poster:
+    build: .
+    container_name: brainglitchx-poster
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+      - ./public/uploads:/app/public/uploads
