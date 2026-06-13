@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.8
+
+Makes single-post OpenAI image generation opt-in by default.
+
 # BrainGlitchX Poster HA Add-on v2.8.7
 
 Fixes async Generate & Schedule button mode so generated posts become scheduled.

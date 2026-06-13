@@ -524,7 +524,7 @@ app.get('/', requirePassword, (req, res) => {
           </div>
           <label>Optional topic/hint <input name="topic" placeholder="e.g. space, football, ancient history, oceans"></label>
           <label>Optional schedule <input type="datetime-local" name="scheduled_at"><small>Used by Generate & Schedule. If empty, the post is scheduled for now + 15 minutes.</small></label>
-          <label class="inline"><input type="checkbox" name="generate_image" value="1" checked> Generate image with OpenAI and attach it</label>
+          <label class="inline"><input type="checkbox" name="generate_image" value="1"> Generate image with OpenAI and attach it</label>
           <div class="button-row">
             <button type="submit" name="mode" value="draft">Generate Draft</button>
             <button type="submit" name="mode" value="schedule">Generate & Schedule</button>
