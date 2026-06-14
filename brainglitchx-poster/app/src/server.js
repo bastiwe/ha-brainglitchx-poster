@@ -18,6 +18,8 @@ const importDir = path.join(process.cwd(), 'data', 'imports');
 fs.mkdirSync(uploadDir, { recursive: true });
 fs.mkdirSync(importDir, { recursive: true });
 
+const APP_VERSION = readAddonVersion();
+
 
 const generationJobs = new Map();
 
@@ -118,6 +120,22 @@ function page(req, title, body) {
   try { inlineCss = fs.readFileSync(path.join(__dirname, '..', 'public', 'styles.css'), 'utf8'); } catch {}
   try { inlineJs = fs.readFileSync(path.join(__dirname, '..', 'public', 'app.js'), 'utf8'); } catch {}
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>${inlineCss}</style></head><body><main><h1>${title}</h1>${body}</main><script>${inlineJs}</script></body></html>`;
+}
+
+function readAddonVersion() {
+  try {
+    const candidates = [
+      path.join(process.cwd(), '..', 'config.yaml'),
+      path.join(process.cwd(), 'config.yaml'),
+      path.join(__dirname, '..', '..', 'config.yaml')
+    ];
+    for (const file of candidates) {
+      if (!fs.existsSync(file)) continue;
+      const match = fs.readFileSync(file, 'utf8').match(/^version:\s*"?([^"\r\n]+)"?/m);
+      if (match) return match[1].trim();
+    }
+  } catch {}
+  return process.env.ADDON_VERSION || '';
 }
 
 function appTimezone() {
@@ -476,7 +494,7 @@ function tabNav(req, active) {
 
 
 function headerBlock(req) {
-  return `<div class="topbar"><div><strong>DRY_RUN:</strong> ${escapeHtml(process.env.DRY_RUN || '')} · <strong>Scheduler time:</strong> ${escapeHtml(nowLocalMinute())} · <strong>TIMEZONE:</strong> ${escapeHtml(appTimezone())}</div><form method="post" action="${rel(req, 'scheduler/run-now')}${keyQuery(req)}" class="inline-form">${hiddenKey(req)}<button type="submit">Run scheduler now</button><span class="hint">Useful for testing due posts immediately.</span></form></div>`;
+  return `<div class="topbar"><div><strong>Version:</strong> ${escapeHtml(APP_VERSION || 'unknown')} · <strong>DRY_RUN:</strong> ${escapeHtml(process.env.DRY_RUN || '')} · <strong>Scheduler time:</strong> ${escapeHtml(nowLocalMinute())} · <strong>TIMEZONE:</strong> ${escapeHtml(appTimezone())}</div><form method="post" action="${rel(req, 'scheduler/run-now')}${keyQuery(req)}" class="inline-form">${hiddenKey(req)}<button type="submit">Run scheduler now</button><span class="hint">Useful for testing due posts immediately.</span></form></div>`;
 }
 
 app.get('/', requirePassword, (req, res) => {

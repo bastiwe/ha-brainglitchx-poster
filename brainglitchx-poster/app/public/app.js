@@ -127,14 +127,26 @@
 
     while (true) {
       const res = await fetch(url.toString());
-      const job = await res.json();
+      const job = await readJsonResponse(res, 'Could not read job');
       if (!res.ok) throw new Error(job.error || 'Could not read job');
+      if (job.invalidJson) throw new Error(job.error || 'Could not read job');
       setProgress(panel, job.progress, job.error || job.message, job.status, job.status === 'failed' ? job.error : job.result);
       if (job.status === 'done' || job.status === 'failed') {
         if (submitButton) submitButton.disabled = false;
         break;
       }
       await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+  }
+
+  async function readJsonResponse(res, fallbackMessage) {
+    const text = await res.text();
+    try {
+      return text ? JSON.parse(text) : {};
+    } catch (_err) {
+      const snippet = text.replace(/\s+/g, ' ').trim().slice(0, 220);
+      const message = `${fallbackMessage}: HTTP ${res.status}${snippet ? ` - ${snippet}` : ''}`;
+      return { error: message, invalidJson: true };
     }
   }
 
@@ -187,8 +199,9 @@
         headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
         body: params.toString()
       });
-      const job = await res.json();
+      const job = await readJsonResponse(res, 'Could not start generation');
       if (!res.ok) throw new Error(job.error || 'Could not start generation');
+      if (job.invalidJson || !job.id) throw new Error(job.error || 'Could not start generation');
       setProgress(panel, job.progress, job.message, job.status, job.result);
       await pollJob(job.id, panel, submitButton);
     } catch (err) {

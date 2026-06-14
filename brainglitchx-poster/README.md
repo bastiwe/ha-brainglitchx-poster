@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.13
+
+Shows the add-on version in the UI and improves async JSON error messages.
+
 # BrainGlitchX Poster HA Add-on v2.8.12
 
 Keeps deleted queue posts in duplicate-detection memory.
