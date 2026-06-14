@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.11
+
+Adds progress bar support for generating images from existing Edit Post drafts.
+
 # BrainGlitchX Poster HA Add-on v2.8.10
 
 Fixes Edit Post "Post now" submit action and adds detailed publish logs.

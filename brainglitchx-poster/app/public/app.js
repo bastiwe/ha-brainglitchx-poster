@@ -99,6 +99,11 @@
     if (title && status) title.textContent = status === 'done' ? 'Done' : status === 'failed' ? 'Failed' : title.dataset.defaultTitle || title.textContent;
     if (resultEl) {
       if (status === 'done') {
+        if (result?.reload) {
+          resultEl.textContent = 'Done. Reloading...';
+          window.setTimeout(() => window.location.reload(), 900);
+          return;
+        }
         const created = result && result.created ? result.created : 1;
         resultEl.innerHTML = `<a href="${queueUrl()}">Open Queue</a> · Created ${created} item${created === 1 ? '' : 's'}.`;
       } else if (status === 'failed') {
@@ -150,8 +155,10 @@
       return;
     }
 
-    const form = event.target.closest('form.async-generate');
-    if (!form) return;
+    const form = event.target;
+    const submitter = event.submitter;
+    const isAsyncJob = form.matches?.('form.async-generate') || submitter?.dataset.asyncJob === '1';
+    if (!isAsyncJob) return;
     event.preventDefault();
 
     const panel = qs('#generation-progress');
@@ -159,10 +166,10 @@
 
     const title = qs('#progress-title', panel);
     if (title) {
-      title.textContent = form.dataset.progressTitle || 'Generating...';
+      title.textContent = submitter?.dataset.progressTitle || form.dataset.progressTitle || 'Generating...';
       title.dataset.defaultTitle = title.textContent;
     }
-    const submitButton = qs('button[type="submit"]', form);
+    const submitButton = submitter || qs('button[type="submit"]', form);
     if (submitButton) submitButton.disabled = true;
     setProgress(panel, 1, 'Request sent. Starting generation...', 'running');
 
@@ -171,9 +178,11 @@
       // Express does not parse multipart bodies on generation routes unless multer is attached,
       // so FormData caused category/topic/status to arrive empty at the backend.
       const params = new URLSearchParams();
-      for (const [key, value] of new FormData(form).entries()) params.append(key, value);
-      if (event.submitter?.name) params.set(event.submitter.name, event.submitter.value || '');
-      const res = await fetch(form.action, {
+      for (const [key, value] of new FormData(form).entries()) {
+        if (typeof value === 'string') params.append(key, value);
+      }
+      if (submitter?.name) params.set(submitter.name, submitter.value || '');
+      const res = await fetch(submitter?.formAction || form.action, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
         body: params.toString()

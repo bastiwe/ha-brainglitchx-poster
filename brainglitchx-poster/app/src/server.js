@@ -432,11 +432,15 @@ function postForm(req, post = null) {
       <label>${isEdit ? 'Replace image' : 'Image'} <input type="file" name="image" accept="image/*"></label>
       <div class="button-row">
         <button type="submit" name="action" value="save">${isEdit ? 'Save changes' : 'Save draft'}</button>
-        ${isEdit ? '<button type="submit" name="action" value="generate_image" class="secondary">Generate image</button>' : ''}
+        ${isEdit ? `<button type="submit" name="action" value="generate_image" class="secondary" formaction="${rel(req, `edit/${post.id}/generate-image/start`)}${keyQuery(req)}" data-async-job="1" data-progress-title="Generating image">Generate image</button>` : ''}
         <button type="submit" name="action" value="schedule">Save & schedule</button>
         <button type="submit" name="action" value="post_now" class="secondary" onclick="return confirm('Post this to X now?')">Post now</button>
       </div>
     </form>`;
+}
+
+function progressPanelHtml() {
+  return `<div class="progress-panel" id="generation-progress" hidden><div class="progress-head"><strong id="progress-title">Generating...</strong><span id="progress-percent">0%</span></div><div class="progress-bar"><div id="progress-fill" style="width:0%"></div></div><p id="progress-message" class="hint">Starting...</p><p id="progress-result"></p></div>`;
 }
 
 function appLink(req, params = {}) {
@@ -507,7 +511,7 @@ app.get('/', requirePassword, (req, res) => {
 
   const header = headerBlock(req);
 
-  const progressPanel = `<div class="progress-panel" id="generation-progress" hidden><div class="progress-head"><strong id="progress-title">Generating...</strong><span id="progress-percent">0%</span></div><div class="progress-bar"><div id="progress-fill" style="width:0%"></div></div><p id="progress-message" class="hint">Starting...</p><p id="progress-result"></p></div>`;
+  const progressPanel = progressPanelHtml();
 
   const sections = {
     queue: `
@@ -615,7 +619,7 @@ app.get('/', requirePassword, (req, res) => {
 app.get('/edit/:id', requirePassword, (req, res) => {
   const post = getPost(req.params.id);
   if (!post) return res.status(404).send('Not found');
-  res.send(page(req, `Edit Post #${post.id}`, `${headerBlock(req)}${tabNav(req, 'queue')}<p><a class="buttonlink" href="${appLink(req, { tab: 'queue' })}">← Back to queue</a></p><section class="card"><h2>Edit Post #${post.id}</h2>${postForm(req, post)}</section>`));
+  res.send(page(req, `Edit Post #${post.id}`, `${headerBlock(req)}${tabNav(req, 'queue')}<p><a class="buttonlink" href="${appLink(req, { tab: 'queue' })}">← Back to queue</a></p><section class="card"><h2>Edit Post #${post.id}</h2>${postForm(req, post)}${progressPanelHtml()}</section>`));
 });
 
 app.post('/posts', requirePassword, upload.single('image'), async (req, res) => {
@@ -685,6 +689,44 @@ app.post('/edit/:id', requirePassword, upload.single('image'), async (req, res) 
     }
   }
   res.redirect(appLink(req, { tab: 'queue' }));
+});
+
+app.post('/edit/:id/generate-image/start', requirePassword, (req, res) => {
+  const existing = getPost(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Not found' });
+  const job = createJob('edit-image');
+  res.json(publicJob(job));
+
+  (async () => {
+    try {
+      updateJob(job.id, { progress: 5, message: 'Saving current post fields...' });
+      updatePost(existing.id, {
+        status: req.body.status || existing.status || 'draft',
+        category: req.body.category || '',
+        text: req.body.text || existing.text,
+        first_comment: req.body.first_comment || '',
+        image_prompt: req.body.image_prompt || '',
+        verification_query: req.body.verification_query || '',
+        scheduled_at: req.body.scheduled_at || existing.scheduled_at || null,
+        error: null,
+      });
+
+      updateJob(job.id, { progress: 20, message: 'Generating image with OpenAI...' });
+      const image_path = await generateOpenAIImage({ prompt: req.body.image_prompt || '', uploadDir });
+      updatePost(existing.id, { image_path, error: null });
+      updateJob(job.id, {
+        status: 'done',
+        progress: 100,
+        message: 'Image generated and attached.',
+        result: { postId: existing.id, imagePath: image_path, reload: true }
+      });
+      console.log('[image:generate-for-post-done]', { postId: existing.id, imagePath: image_path });
+    } catch (e) {
+      updatePost(existing.id, { error: readableError(e) });
+      console.error('[image:generate-for-post-failed]', existing.id, e);
+      updateJob(job.id, { status: 'failed', progress: 100, message: 'Image generation failed.', error: readableError(e) });
+    }
+  })();
 });
 
 app.post('/delete/:id', requirePassword, (req, res) => {
