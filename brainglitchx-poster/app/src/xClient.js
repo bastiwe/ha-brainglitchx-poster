@@ -6,6 +6,7 @@ TwitterApiV2Settings.deprecationWarnings = false;
 
 const required = ['X_APP_KEY','X_APP_SECRET','X_ACCESS_TOKEN','X_ACCESS_SECRET'];
 const X_TEXT_LIMIT = 280;
+const X_IMAGE_SIZE_LIMIT = 5 * 1024 * 1024;
 
 function getClient() {
   for (const key of required) {
@@ -40,6 +41,7 @@ export async function publishPost(post) {
   const mediaIds = [];
 
   if (post.image_path && fs.existsSync(post.image_path)) {
+    assertImageSize(post.image_path);
     const mediaId = await client.v1.uploadMedia(post.image_path, {
       mimeType: guessMimeType(post.image_path),
     });
@@ -69,6 +71,16 @@ export async function publishPost(post) {
   }
 
   return { postId, commentId, commentError };
+}
+
+function assertImageSize(filePath) {
+  const size = fs.statSync(filePath).size;
+  if (size > X_IMAGE_SIZE_LIMIT) {
+    const mb = (size / 1024 / 1024).toFixed(1);
+    const err = new Error(`Image is too large for X upload (${mb} MB). X allows max 5 MB for this upload path. Regenerate the image or replace it with a smaller one.`);
+    err.code = 'X_IMAGE_TOO_LARGE';
+    throw err;
+  }
 }
 
 function assertTweetLength(text = '', label = 'Text') {

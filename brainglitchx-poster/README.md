@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.15
+
+Generates smaller JPEG OpenAI images by default and validates X image upload size before posting.
+
 # BrainGlitchX Poster HA Add-on v2.8.14
 
 Fixes async Generate buttons posting to the app root instead of generate/start.

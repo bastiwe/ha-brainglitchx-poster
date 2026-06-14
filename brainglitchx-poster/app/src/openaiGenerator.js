@@ -7,10 +7,13 @@ const TEXT_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
 const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1';
 const SUPPORTED_IMAGE_SIZES = new Set(['1024x1024', '1024x1536', '1536x1024', 'auto']);
 const SUPPORTED_IMAGE_QUALITIES = new Set(['low', 'medium', 'high', 'auto']);
+const SUPPORTED_IMAGE_FORMATS = new Set(['png', 'jpeg', 'webp']);
 const requestedImageSize = process.env.OPENAI_IMAGE_SIZE || '1024x1024';
 const requestedImageQuality = process.env.OPENAI_IMAGE_QUALITY || 'low';
+const requestedImageFormat = process.env.OPENAI_IMAGE_FORMAT || 'jpeg';
 const IMAGE_SIZE = SUPPORTED_IMAGE_SIZES.has(requestedImageSize) ? requestedImageSize : '1024x1024';
 const IMAGE_QUALITY = SUPPORTED_IMAGE_QUALITIES.has(requestedImageQuality) ? requestedImageQuality : 'low';
+const IMAGE_FORMAT = SUPPORTED_IMAGE_FORMATS.has(requestedImageFormat) ? requestedImageFormat : 'jpeg';
 
 function getOpenAIClient() {
   if (!process.env.OPENAI_API_KEY) {
@@ -208,17 +211,20 @@ export async function generateOpenAIImage({ prompt, uploadDir }) {
   await fs.mkdir(uploadDir, { recursive: true });
 
   const fullPrompt = `${prompt.trim()}\n\n${imageStyleSuffix()}`;
-  const response = await client.images.generate({
+  const request = {
     model: IMAGE_MODEL,
     prompt: fullPrompt,
     size: IMAGE_SIZE,
     quality: IMAGE_QUALITY,
-  });
+    output_format: IMAGE_FORMAT,
+  };
+  const response = await client.images.generate(request);
 
   const item = response.data?.[0];
   if (!item) throw new Error('OpenAI image generation returned no image');
 
-  const filename = `${Date.now()}-${crypto.randomUUID()}.png`;
+  const ext = IMAGE_FORMAT === 'jpeg' ? 'jpg' : IMAGE_FORMAT;
+  const filename = `${Date.now()}-${crypto.randomUUID()}.${ext}`;
   const absolutePath = path.join(uploadDir, filename);
 
   if (item.b64_json) {
