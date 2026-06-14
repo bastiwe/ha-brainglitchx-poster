@@ -98,7 +98,30 @@ Facts/topics already used. Do NOT repeat or rephrase these:
 ${lines.join('\n')}` : '';
 }
 
-export async function generateOpenAIBrainGlitch({ category = '', topic = '', avoidFacts = [] } = {}) {
+const GENERATION_MODES = {
+  viral: `Generation mode: Viral
+- Goal: maximum interaction, surprise, and emotion.
+- Use a strong hook in the first line.
+- Build around a surprising fact.
+- End the post with an open question when it fits naturally.
+- Keep it factual and avoid clickbait or exaggerated claims.`,
+  educational: `Generation mode: Educational
+- Goal: learning, aha effect, credibility, and saves/bookmarks.
+- Explain why the fact matters or what it teaches.
+- Prefer clear context, concrete numbers, and high-confidence wording.
+- Make the post worth saving without sounding like a textbook.`,
+  controversial: `Generation mode: Controversial
+- Goal: spark thoughtful debate around a surprising factual tension.
+- Choose facts that challenge common assumptions or invite disagreement.
+- Do not create outrage bait, insults, politics-for-engagement, or unsafe claims.
+- End with a discussion-friendly question when it fits naturally.`
+};
+
+function modeInstructions(mode = 'viral') {
+  return GENERATION_MODES[String(mode || '').toLowerCase()] || GENERATION_MODES.viral;
+}
+
+export async function generateOpenAIBrainGlitch({ category = '', topic = '', mode = 'viral', avoidFacts = [] } = {}) {
   const client = getOpenAIClient();
   const prompt = `Create ONE high-quality BrainGlitchX post idea for X/Twitter.
 
@@ -106,7 +129,8 @@ Brand: BrainGlitchX
 Style: short, surprising, factual, curiosity-driven. Not clickbait. No hashtags. No emojis unless truly useful.
 Audience: general English-speaking audience.
 Category requested: ${category || 'random'}
-Topic or hint: ${topic || 'none'}${avoidListText(avoidFacts)}
+Topic or hint: ${topic || 'none'}
+${modeInstructions(mode)}${avoidListText(avoidFacts)}
 
 Requirements:
 - If a topic or hint is provided, the fact MUST be clearly about that topic. Do not ignore it.
@@ -144,7 +168,7 @@ Return ONLY valid JSON with these exact keys:
   return normalizeGenerated(safeJsonParse(content), category);
 }
 
-export async function generateOpenAIBrainGlitchBatch({ count = 5, categories = [], topic = '', avoidFacts = [] } = {}) {
+export async function generateOpenAIBrainGlitchBatch({ count = 5, categories = [], topic = '', mode = 'viral', avoidFacts = [] } = {}) {
   const client = getOpenAIClient();
   const n = Math.max(1, Math.min(Number(count) || 5, 12));
   const categoryText = categories.length ? categories.join(', ') : 'mixed categories';
@@ -155,7 +179,8 @@ Brand: BrainGlitchX
 Style: short, surprising, factual, curiosity-driven. Not clickbait. No hashtags. No emojis unless truly useful.
 Audience: general English-speaking audience.
 Categories requested: ${categoryText}
-Topic or hint: ${topic || 'none'}${avoidListText(avoidFacts)}
+Topic or hint: ${topic || 'none'}
+${modeInstructions(mode)}${avoidListText(avoidFacts)}
 
 Requirements for every item:
 - If a topic or hint is provided, EVERY item MUST be clearly about that topic. Do not ignore it.

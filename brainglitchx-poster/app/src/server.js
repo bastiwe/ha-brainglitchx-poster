@@ -270,11 +270,11 @@ function assertCreated(info, context = 'post') {
   return info;
 }
 
-async function generateUniqueBrainGlitch({ category = '', topic = '' } = {}) {
+async function generateUniqueBrainGlitch({ category = '', topic = '', generationMode = 'viral' } = {}) {
   const existing = existingIdeasMemory();
   let last = null;
   for (let attempt = 1; attempt <= 4; attempt++) {
-    let generated = await generateOpenAIBrainGlitch({ category, topic, avoidFacts: existing });
+    let generated = await generateOpenAIBrainGlitch({ category, topic, mode: generationMode, avoidFacts: existing });
     generated = applyRequestedCategory(generated, category);
     last = generated;
     if (!isDuplicateIdea(generated, existing)) return { generated, duplicateAttempts: attempt - 1 };
@@ -283,7 +283,7 @@ async function generateUniqueBrainGlitch({ category = '', topic = '' } = {}) {
   throw new Error(`OpenAI kept generating duplicate facts. Last candidate: ${last?.fact || last?.text || 'unknown'}`);
 }
 
-async function generateUniqueBrainGlitchBatch({ count, categories = [], topic = '' } = {}) {
+async function generateUniqueBrainGlitchBatch({ count, categories = [], topic = '', generationMode = 'viral' } = {}) {
   const wanted = Math.max(1, Math.min(Number(count) || 5, 12));
   const existing = existingIdeasMemory();
   const accepted = [];
@@ -296,6 +296,7 @@ async function generateUniqueBrainGlitchBatch({ count, categories = [], topic = 
       count: requestCount,
       categories,
       topic,
+      mode: generationMode,
       avoidFacts: existing
     });
 
@@ -324,8 +325,27 @@ function categoryMultiSelect(selected = []) {
   <label>Additional categories, comma separated <input name="categories_extra" placeholder="e.g. Football, Ancient Civilizations"></label>`;
 }
 
+function generationModeSelect(selected = 'viral') {
+  const current = ['viral', 'educational', 'controversial'].includes(String(selected || '').toLowerCase())
+    ? String(selected).toLowerCase()
+    : 'viral';
+  const modes = [
+    { value: 'viral', label: 'Viral', hint: 'Strong hook, surprising fact, open question.' },
+    { value: 'educational', label: 'Educational', hint: 'Learning, aha effect, credibility, saves.' },
+    { value: 'controversial', label: 'Controversial', hint: 'Factual tension, debate, thoughtful replies.' }
+  ];
+  return `<div class="checkbox-grid mode-grid">${modes.map(mode => `
+    <label class="check-pill mode-pill"><span class="mode-title"><input type="radio" name="generation_mode" value="${mode.value}" ${current === mode.value ? 'checked' : ''}> ${mode.label}</span><small>${mode.hint}</small></label>`).join('')}
+  </div>`;
+}
+
 function requestedGenerateMode(body = {}) {
   return body.mode || body.action || '';
+}
+
+function requestedGenerationStyle(body = {}) {
+  const mode = String(body.generation_mode || '').toLowerCase();
+  return ['viral', 'educational', 'controversial'].includes(mode) ? mode : 'viral';
 }
 
 function statusForGenerate(body = {}) {
@@ -559,6 +579,7 @@ app.get('/', requirePassword, (req, res) => {
             <label>Category <select name="category"><option value="">Random</option><option>Nature</option><option>Space</option><option>History</option><option>Science</option><option>Human Body</option><option>Statistics</option><option>Technology</option><option>Geography</option><option>Weird Facts</option></select></label>
             <label>Status <select name="status"><option value="draft">Draft</option><option value="scheduled">Scheduled</option></select></label>
           </div>
+          <label>Post mode <small>Controls how OpenAI frames the generated post.</small>${generationModeSelect('viral')}</label>
           <label>Optional topic/hint <input name="topic" placeholder="e.g. space, football, ancient history, oceans"></label>
           <label>Optional schedule <input type="datetime-local" name="scheduled_at"><small>Used by Generate & Schedule. If empty, the post is scheduled for now + 15 minutes.</small></label>
           <label class="inline"><input type="checkbox" name="generate_image" value="1"> Generate image with OpenAI and attach it</label>
@@ -586,6 +607,7 @@ app.get('/', requirePassword, (req, res) => {
           </div>
           <label>Categories <small>Select one or more. The generator will mix posts across these categories.</small>${categoryMultiSelect(['History','Space','Science','Nature','Weird Facts'])}</label>
           <p class="hint">Times are generated randomly inside the selected range. The range is split into slots based on the number of posts, so posts keep sensible spacing instead of always using the same times.</p>
+          <label>Post mode <small>Controls how OpenAI frames every generated post.</small>${generationModeSelect('viral')}</label>
           <label>Optional topic/hint for the day <input name="topic" placeholder="e.g. surprising science and history facts"></label>
           <label>Status <select name="status"><option value="scheduled">Scheduled</option><option value="draft">Draft</option></select></label>
           <label class="inline"><input type="checkbox" name="generate_images" value="1" checked> Generate and attach images for all posts</label>
@@ -761,7 +783,8 @@ app.get('/jobs/:id', requirePassword, (req, res) => {
 });
 
 app.post('/generate/start', requirePassword, (req, res) => {
-  console.log('[generate:start]', { category: req.body.category || '', topic: req.body.topic || '', status: req.body.status || 'draft', image: req.body.generate_image === '1' });
+  const generationMode = requestedGenerationStyle(req.body);
+  console.log('[generate:start]', { category: req.body.category || '', topic: req.body.topic || '', generationMode, status: req.body.status || 'draft', image: req.body.generate_image === '1' });
   const job = createJob('single');
   res.json(publicJob(job));
   (async () => {
@@ -769,7 +792,7 @@ app.post('/generate/start', requirePassword, (req, res) => {
       updateJob(job.id, { progress: 5, message: 'Generating fact, post text and image prompt...' });
       let generated;
       if (process.env.OPENAI_API_KEY) {
-        ({ generated } = await generateUniqueBrainGlitch({ category: req.body.category || '', topic: req.body.topic || '' }));
+        ({ generated } = await generateUniqueBrainGlitch({ category: req.body.category || '', topic: req.body.topic || '', generationMode }));
       } else {
         generated = generateBrainGlitch(req.body.category || '');
       }
@@ -800,7 +823,7 @@ app.post('/generate/start', requirePassword, (req, res) => {
         updateJob(job.id, { progress: 92, message: 'Publishing to X now...' });
         publishResult = await publishExistingPost(created.id);
       }
-      console.log('[generate:done]', { postId: created.id, category: generated.category, topic: req.body.topic || '', mode, xPostId: publishResult?.postId || null });
+      console.log('[generate:done]', { postId: created.id, category: generated.category, topic: req.body.topic || '', generationMode, mode, xPostId: publishResult?.postId || null });
       const doneText = mode === 'post_now' ? `Done. Generated and posted (ID ${created.id}).` : mode === 'schedule' ? `Done. Generated and scheduled (ID ${created.id}).` : `Done. Draft created (ID ${created.id}).`;
       updateJob(job.id, { status: 'done', progress: 100, message: doneText, result: { created: 1, postId: created.id, xPostId: publishResult?.postId || null } });
     } catch (e) {
@@ -811,7 +834,8 @@ app.post('/generate/start', requirePassword, (req, res) => {
 });
 
 app.post('/generate-day/start', requirePassword, (req, res) => {
-  console.log('[generate-day:start]', { count: req.body.count, categories: req.body.categories, extra: req.body.categories_extra, topic: req.body.topic || '', status: req.body.status || 'scheduled', images: req.body.generate_images === '1' });
+  const generationMode = requestedGenerationStyle(req.body);
+  console.log('[generate-day:start]', { count: req.body.count, categories: req.body.categories, extra: req.body.categories_extra, topic: req.body.topic || '', generationMode, status: req.body.status || 'scheduled', images: req.body.generate_images === '1' });
   const job = createJob('day');
   res.json(publicJob(job));
   (async () => {
@@ -825,7 +849,7 @@ app.post('/generate-day/start', requirePassword, (req, res) => {
       const scheduleTimes = randomScheduleSlots({ date, startTime: start, endTime: end, count });
 
       updateJob(job.id, { progress: 5, message: `Generating ${count} post ideas...` });
-      const batchResult = await generateUniqueBrainGlitchBatch({ count, categories, topic: req.body.topic || '' });
+      const batchResult = await generateUniqueBrainGlitchBatch({ count, categories, topic: req.body.topic || '', generationMode });
       const items = batchResult.items;
       const dupeNote = batchResult.duplicateCount ? ` Skipped ${batchResult.duplicateCount} duplicate candidate(s).` : '';
       updateJob(job.id, { progress: 25, message: `Generated ${items.length} unique post ideas.${dupeNote}` });
@@ -859,7 +883,7 @@ app.post('/generate-day/start', requirePassword, (req, res) => {
           scheduled_at
         }), `day post ${i + 1}`);
         createdIds.push(info.id);
-        console.log('[generate-day:item-created]', { id: info.id, category: generated.category, scheduled_at, topic: req.body.topic || '' });
+        console.log('[generate-day:item-created]', { id: info.id, category: generated.category, scheduled_at, topic: req.body.topic || '', generationMode });
         created++;
         updateJob(job.id, { progress: 25 + Math.round(((i + 1) / total) * 70), message: `Saved post ${i + 1} of ${total}.` });
       }
@@ -872,11 +896,12 @@ app.post('/generate-day/start', requirePassword, (req, res) => {
 });
 
 app.post('/generate', requirePassword, async (req, res) => {
-  console.log('[generate:legacy]', { category: req.body.category || '', topic: req.body.topic || '', status: req.body.status || 'draft', image: req.body.generate_image === '1' });
+  const generationMode = requestedGenerationStyle(req.body);
+  console.log('[generate:legacy]', { category: req.body.category || '', topic: req.body.topic || '', generationMode, status: req.body.status || 'draft', image: req.body.generate_image === '1' });
   let generated;
   try {
     if (process.env.OPENAI_API_KEY) {
-      ({ generated } = await generateUniqueBrainGlitch({ category: req.body.category || '', topic: req.body.topic || '' }));
+      ({ generated } = await generateUniqueBrainGlitch({ category: req.body.category || '', topic: req.body.topic || '', generationMode }));
     } else {
       generated = generateBrainGlitch(req.body.category || '');
     }
@@ -910,8 +935,9 @@ app.post('/generate-day', requirePassword, async (req, res) => {
     const start = req.body.start_time || '09:00';
     const end = req.body.end_time || '21:00';
     const categories = [...new Set([...parseCategories(req.body.categories), ...parseCategories(req.body.categories_extra)])];
+    const generationMode = requestedGenerationStyle(req.body);
     const scheduleTimes = randomScheduleSlots({ date, startTime: start, endTime: end, count });
-    const batchResult = await generateUniqueBrainGlitchBatch({ count, categories, topic: req.body.topic || '' });
+    const batchResult = await generateUniqueBrainGlitchBatch({ count, categories, topic: req.body.topic || '', generationMode });
     const items = batchResult.items;
     let created = 0;
     for (let i = 0; i < items.length; i++) {

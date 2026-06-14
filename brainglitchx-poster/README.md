@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.16
+
+Adds Viral, Educational, and Controversial generation modes for OpenAI post creation.
+
 # BrainGlitchX Poster HA Add-on v2.8.15
 
 Generates smaller JPEG OpenAI images by default and validates X image upload size before posting.
