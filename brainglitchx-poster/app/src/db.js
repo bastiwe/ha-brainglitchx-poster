@@ -32,6 +32,21 @@ CREATE TABLE IF NOT EXISTS posts (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_posts_status_schedule ON posts(status, scheduled_at);
+
+CREATE TABLE IF NOT EXISTS deleted_post_memory (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  original_post_id INTEGER,
+  status TEXT,
+  category TEXT,
+  text TEXT NOT NULL,
+  first_comment TEXT,
+  image_prompt TEXT,
+  verification_query TEXT,
+  scheduled_at TEXT,
+  created_at TEXT,
+  deleted_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_deleted_post_memory_deleted_at ON deleted_post_memory(deleted_at);
 `);
 
 // Lightweight migrations for existing installations.
@@ -143,15 +158,38 @@ export function updatePost(id, fields) {
 }
 
 export function deletePost(id) {
-  db.prepare(`DELETE FROM posts WHERE id = ?`).run(id);
+  const tx = db.transaction((postId) => {
+    const existing = db.prepare(`SELECT * FROM posts WHERE id = ?`).get(postId);
+    if (existing && existing.text && String(existing.text).trim()) {
+      db.prepare(`
+        INSERT INTO deleted_post_memory (
+          original_post_id, status, category, text, first_comment, image_prompt,
+          verification_query, scheduled_at, created_at
+        )
+        VALUES (
+          @id, @status, @category, @text, @first_comment, @image_prompt,
+          @verification_query, @scheduled_at, @created_at
+        )
+      `).run(existing);
+    }
+    return db.prepare(`DELETE FROM posts WHERE id = ?`).run(postId);
+  });
+  return tx(Number(id));
 }
 
 export function recentPostMemory(limit = 300) {
   return db.prepare(`
-    SELECT id, category, text, first_comment, image_prompt, verification_query, created_at, scheduled_at
-    FROM posts
-    WHERE text IS NOT NULL AND trim(text) <> ''
-    ORDER BY id DESC
+    SELECT id, category, text, first_comment, image_prompt, verification_query, created_at, scheduled_at, source
+    FROM (
+      SELECT id, category, text, first_comment, image_prompt, verification_query, created_at, scheduled_at, id AS sort_id, 'active' AS source
+      FROM posts
+      WHERE text IS NOT NULL AND trim(text) <> ''
+      UNION ALL
+      SELECT original_post_id AS id, category, text, first_comment, image_prompt, verification_query, created_at, scheduled_at, id AS sort_id, 'deleted' AS source
+      FROM deleted_post_memory
+      WHERE text IS NOT NULL AND trim(text) <> ''
+    )
+    ORDER BY sort_id DESC
     LIMIT ?
   `).all(Number(limit) || 300);
 }

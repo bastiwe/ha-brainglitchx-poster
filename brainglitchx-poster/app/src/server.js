@@ -731,6 +731,7 @@ app.post('/edit/:id/generate-image/start', requirePassword, (req, res) => {
 
 app.post('/delete/:id', requirePassword, (req, res) => {
   deletePost(req.params.id);
+  console.log('[post:deleted-archived-for-dedupe]', { postId: Number(req.params.id) });
   res.redirect(appLink(req, { tab: 'queue' }));
 });
 

@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.12
+
+Keeps deleted queue posts in duplicate-detection memory.
+
 # BrainGlitchX Poster HA Add-on v2.8.11
 
 Adds progress bar support for generating images from existing Edit Post drafts.
