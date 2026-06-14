@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.10
+
+Fixes Edit Post "Post now" submit action and adds detailed publish logs.
+
 # BrainGlitchX Poster HA Add-on v2.8.9
 
 Instructs OpenAI not to use em dashes and normalizes generated text if they appear.

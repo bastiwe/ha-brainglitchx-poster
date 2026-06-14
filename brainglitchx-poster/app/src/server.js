@@ -325,6 +325,7 @@ function scheduleForGenerate(body = {}) {
 }
 
 async function publishExistingPost(id) {
+  console.log('[publish:claim-start]', { postId: Number(id) });
   const claim = claimPostForPublishing(id);
   if (!claim.claimed) {
     const reason = claim.reason || 'not_claimed';
@@ -340,6 +341,13 @@ async function publishExistingPost(id) {
   }
   try {
     const latest = claim.post;
+    console.log('[publish:start]', {
+      postId: latest.id,
+      status: latest.status,
+      textLength: [...String(latest.text || '')].length,
+      commentLength: [...String(latest.first_comment || '')].length,
+      hasImage: Boolean(latest.image_path)
+    });
     const result = await publishPost(latest);
     updatePost(latest.id, {
       status: 'posted',
@@ -348,9 +356,16 @@ async function publishExistingPost(id) {
       x_comment_id: result.commentId,
       error: result.commentError ? `First comment failed: ${result.commentError}` : null
     });
+    console.log('[publish:success]', {
+      postId: latest.id,
+      xPostId: result.postId,
+      xCommentId: result.commentId || null,
+      commentError: result.commentError || null
+    });
     return result;
   } catch (e) {
     updatePost(Number(id), { status: 'failed', error: readableError(e) });
+    console.error('[publish:failed]', { postId: Number(id), error: readableError(e) }, e);
     throw e;
   }
 }
@@ -417,9 +432,9 @@ function postForm(req, post = null) {
       <label>${isEdit ? 'Replace image' : 'Image'} <input type="file" name="image" accept="image/*"></label>
       <div class="button-row">
         <button type="submit" name="action" value="save">${isEdit ? 'Save changes' : 'Save draft'}</button>
-        ${isEdit ? '<button type="submit" name="action" value="generate_image" class="secondary" onclick="this.disabled=true; this.textContent=\'Generating image...\'; this.form.submit(); return false;">Generate image</button>' : ''}
+        ${isEdit ? '<button type="submit" name="action" value="generate_image" class="secondary">Generate image</button>' : ''}
         <button type="submit" name="action" value="schedule">Save & schedule</button>
-        <button type="submit" name="action" value="post_now" class="secondary" onclick="if(!confirm('Post this to X now?')) return false; this.disabled=true; this.textContent='Posting...'; this.form.submit(); return false;">Post now</button>
+        <button type="submit" name="action" value="post_now" class="secondary" onclick="return confirm('Post this to X now?')">Post now</button>
       </div>
     </form>`;
 }
@@ -637,6 +652,7 @@ app.post('/edit/:id', requirePassword, upload.single('image'), async (req, res) 
   if (req.body.remove_image === '1') image_path = null;
   if (req.file) image_path = path.join('public', 'uploads', req.file.filename).replaceAll('\\','/');
   const action = req.body.action || 'save';
+  console.log('[edit:submit]', { postId: existing.id, action });
   if (action === 'generate_image') {
     try {
       image_path = await generateOpenAIImage({ prompt: req.body.image_prompt || '', uploadDir });
@@ -942,12 +958,15 @@ app.get('/publish/:id', requirePassword, async (req, res) => {
 app.post('/publish/:id', requirePassword, async (req, res) => {
   const post = getPost(req.params.id);
   if (!post) return res.status(404).send('Not found');
+  console.log('[post-now:queue-start]', { postId: post.id, status: post.status });
   try {
     const result = await publishExistingPost(post.id);
+    console.log('[post-now:queue-success]', { postId: post.id, xPostId: result.postId, xCommentId: result.commentId || null });
     if (req.headers.accept?.includes('application/json')) return res.json(result);
     res.redirect(appLink(req, { tab: 'queue' }));
   } catch (e) {
     updatePost(post.id, { status: 'failed', error: readableError(e) });
+    console.error('[post-now:queue-failed]', { postId: post.id, error: readableError(e) }, e);
     if (req.headers.accept?.includes('application/json')) return res.status(500).json({ error: readableError(e) });
     res.status(500).send(page(req, 'Post now failed', `<p>${escapeHtml(readableError(e))}</p><p><a href="${appLink(req, { tab: 'queue' })}">Back to queue</a></p>`));
   }
