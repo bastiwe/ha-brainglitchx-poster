@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.9
+
+Instructs OpenAI not to use em dashes and normalizes generated text if they appear.
+
 # BrainGlitchX Poster HA Add-on v2.8.8
 
 Makes single-post OpenAI image generation opt-in by default.

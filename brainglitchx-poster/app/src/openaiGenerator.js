@@ -27,13 +27,17 @@ function safeJsonParse(text) {
 
 function normalizeGenerated(parsed, fallbackCategory = '') {
   return {
-    category: String(parsed.category || fallbackCategory || 'Weird Facts').slice(0, 80),
-    fact: String(parsed.fact || '').trim(),
-    text: String(parsed.text || '').trim(),
-    first_comment: String(parsed.first_comment || '').trim(),
-    image_prompt: String(parsed.image_prompt || '').trim(),
-    verification_query: String(parsed.verification_query || '').trim(),
+    category: cleanGeneratedText(parsed.category || fallbackCategory || 'Weird Facts').slice(0, 80),
+    fact: cleanGeneratedText(parsed.fact),
+    text: cleanGeneratedText(parsed.text),
+    first_comment: cleanGeneratedText(parsed.first_comment),
+    image_prompt: cleanGeneratedText(parsed.image_prompt),
+    verification_query: cleanGeneratedText(parsed.verification_query),
   };
+}
+
+function cleanGeneratedText(value = '') {
+  return String(value || '').replaceAll('—', ' - ').trim();
 }
 
 function normalizeForSimilarity(value = '') {
@@ -109,6 +113,7 @@ Requirements:
 - Do not repeat, lightly reword, or use the same core topic as any already-used fact above.
 - Post text: MUST be 280 characters or fewer, including spaces and line breaks.
 - First comment: MUST be 280 characters or fewer, short engagement booster or helpful extra context.
+- Do not use the em dash character "—" anywhere. Use a comma, colon, period, or simple hyphen instead.
 - Image prompt: create a photorealistic image prompt with no text, no logos, no watermarks. Prefer a single strong visual subject.
 - Include a search query that I can use to verify the fact before posting.
 
@@ -159,6 +164,7 @@ Requirements for every item:
 - Items in this batch must also be distinct from each other.
 - Post text: MUST be 280 characters or fewer, including spaces and line breaks.
 - First comment: MUST be 280 characters or fewer, short engagement booster or helpful extra context.
+- Do not use the em dash character "—" anywhere. Use a comma, colon, period, or simple hyphen instead.
 - Image prompt: photorealistic, no text, no logos, no watermarks, single strong visual subject when possible.
 - Include a search query for manual fact-checking.
 
