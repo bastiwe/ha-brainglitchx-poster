@@ -194,7 +194,8 @@
         if (typeof value === 'string') params.append(key, value);
       }
       if (submitter?.name) params.set(submitter.name, submitter.value || '');
-      const res = await fetch(submitter?.formAction || form.action, {
+      const targetAction = submitter?.hasAttribute?.('formaction') ? submitter.formAction : form.action;
+      const res = await fetch(targetAction, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
         body: params.toString()
