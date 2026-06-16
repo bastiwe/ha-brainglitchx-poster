@@ -461,7 +461,7 @@ function postForm(req, post = null) {
           ${['draft','scheduled','posted','failed'].map(s => `<option value="${s}" ${post?.status === s ? 'selected' : ''}>${s}</option>`).join('')}
         </select></label>
       </div>
-      <label>Schedule <input type="datetime-local" name="scheduled_at" value="${escapeAttr(toLocalInputValue(post?.scheduled_at))}"><small>Uses your local time. No manual 2-hour workaround needed anymore.</small></label>
+      <label>Schedule <input type="datetime-local" name="scheduled_at" value="${escapeAttr(toLocalInputValue(post?.scheduled_at))}" min="${escapeAttr(nowLocalMinute())}"><small>Uses your local time. No manual 2-hour workaround needed anymore.</small></label>
       <label>Post text <textarea name="text" required rows="6" data-char-limit="280">${escapeHtml(post?.text || '')}</textarea></label>
       <label>First comment <textarea name="first_comment" rows="3" data-char-limit="280">${escapeHtml(post?.first_comment || '')}</textarea></label>
       <label>Image prompt <textarea name="image_prompt" rows="3" placeholder="Prompt for image generation, no text, no watermark...">${escapeHtml(post?.image_prompt || '')}</textarea></label>
@@ -581,7 +581,7 @@ app.get('/', requirePassword, (req, res) => {
           </div>
           <label>Post mode <small>Controls how OpenAI frames the generated post.</small>${generationModeSelect('viral')}</label>
           <label>Optional topic/hint <input name="topic" placeholder="e.g. space, football, ancient history, oceans"></label>
-          <label>Optional schedule <input type="datetime-local" name="scheduled_at"><small>Used by Generate & Schedule. If empty, the post is scheduled for now + 15 minutes.</small></label>
+          <label>Optional schedule <input type="datetime-local" name="scheduled_at" min="${escapeAttr(nowLocalMinute())}"><small>Used by Generate & Schedule. If empty, the post is scheduled for now + 15 minutes.</small></label>
           <label class="inline"><input type="checkbox" name="generate_image" value="1"> Generate image with OpenAI and attach it</label>
           <div class="button-row">
             <button type="submit" name="mode" value="draft">Generate Draft</button>
@@ -1066,6 +1066,12 @@ async function runScheduler(options = {}) {
     console.log(`[scheduler] ${now} ${appTimezone()} · due posts: ${posts.length}`);
   }
   for (const post of posts) {
+    if (String(post.scheduled_at || '') < now) {
+      const message = `Scheduled time ${post.scheduled_at} is in the past. The scheduler did not publish it automatically. Review and schedule it for a future time.`;
+      updatePost(post.id, { status: 'draft', error: message });
+      console.warn('[scheduler:past-schedule-skipped]', { postId: post.id, scheduled_at: post.scheduled_at, now });
+      continue;
+    }
     try {
       const result = await publishExistingPost(post.id);
       console.log('Posted', post.id, result);

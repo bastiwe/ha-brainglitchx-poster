@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.17
+
+Prevents accidentally past scheduled posts from being published immediately by the scheduler.
+
 # BrainGlitchX Poster HA Add-on v2.8.16
 
 Adds Viral, Educational, and Controversial generation modes for OpenAI post creation.
