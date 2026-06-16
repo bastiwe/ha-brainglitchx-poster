@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.20
+
+Adds cheaper optional OpenAI model choices: gpt-5.4-nano for text and gpt-image-1-mini for image generation.
+
 # BrainGlitchX Poster HA Add-on v2.8.19
 
 Links single-post generation results directly to the generated post edit page.
