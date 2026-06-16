@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.19
+
+Links single-post generation results directly to the generated post edit page.
+
 # BrainGlitchX Poster HA Add-on v2.8.18
 
 Validates full-day planner schedule windows before generation so it cannot create already-due scheduled posts.

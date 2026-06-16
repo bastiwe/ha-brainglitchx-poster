@@ -105,7 +105,13 @@
           return;
         }
         const created = result && result.created ? result.created : 1;
-        resultEl.innerHTML = `<a href="${queueUrl()}">Open Queue</a> · Created ${created} item${created === 1 ? '' : 's'}.`;
+        if (result?.postId) {
+          resultEl.innerHTML = `<a href="${postUrl(result.postId)}">Open generated post</a> · Created ${created} item${created === 1 ? '' : 's'}.`;
+        } else if (Array.isArray(result?.ids) && result.ids.length === 1) {
+          resultEl.innerHTML = `<a href="${postUrl(result.ids[0])}">Open generated post</a> · Created 1 item.`;
+        } else {
+          resultEl.innerHTML = `<a href="${queueUrl()}">Open Queue</a> · Created ${created} item${created === 1 ? '' : 's'}.`;
+        }
       } else if (status === 'failed') {
         resultEl.textContent = result || '';
       } else {
@@ -115,9 +121,20 @@
   }
 
   function queueUrl() {
-    const url = new URL(appRootUrl());
-    url.searchParams.set('tab', 'queue');
-    return url.toString();
+    return withCurrentKey(appRootUrl(), { tab: 'queue' });
+  }
+
+  function postUrl(postId) {
+    return withCurrentKey(appRootUrl(`edit/${postId}`));
+  }
+
+  function withCurrentKey(rawUrl, extraParams = {}) {
+    const target = new URL(rawUrl);
+    const current = new URL(window.location.href);
+    const key = current.searchParams.get('key');
+    if (key) target.searchParams.set('key', key);
+    Object.entries(extraParams).forEach(([name, value]) => target.searchParams.set(name, value));
+    return target.toString();
   }
 
   async function pollJob(jobId, panel, submitButton) {
