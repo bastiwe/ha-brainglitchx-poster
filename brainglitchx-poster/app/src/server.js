@@ -222,6 +222,14 @@ function todayLocalDate() {
   return nowLocalMinute().slice(0, 10);
 }
 
+function validateFutureScheduleTimes(scheduleTimes = [], { status = 'scheduled', context = 'schedule' } = {}) {
+  if ((status || 'scheduled') === 'draft') return;
+  const now = nowLocalMinute();
+  const past = scheduleTimes.filter(value => value && String(value) <= now);
+  if (!past.length) return;
+  throw new Error(`${context} would create ${past.length} post(s) in the past or current minute. Choose a future date/time range. Earliest generated time: ${past[0]}; current time: ${now}.`);
+}
+
 function publicImageUrl(imagePath) {
   return imagePath ? String(imagePath).replace('public/','') : '';
 }
@@ -598,7 +606,7 @@ app.get('/', requirePassword, (req, res) => {
         <form method="post" action="${rel(req, 'generate-day/start')}${keyQuery(req)}" class="async-generate" data-progress-title="Planning full day">
           ${hiddenKey(req)}
           <div class="grid2">
-            <label>Date <input type="date" name="date" value="${todayLocalDate()}"></label>
+            <label>Date <input type="date" name="date" value="${todayLocalDate()}" min="${todayLocalDate()}"></label>
             <label>Number of posts <input type="number" name="count" min="1" max="12" value="5"></label>
           </div>
           <div class="grid2">
@@ -847,6 +855,8 @@ app.post('/generate-day/start', requirePassword, (req, res) => {
       const end = req.body.end_time || '21:00';
       const categories = [...new Set([...parseCategories(req.body.categories), ...parseCategories(req.body.categories_extra)])];
       const scheduleTimes = randomScheduleSlots({ date, startTime: start, endTime: end, count });
+      validateFutureScheduleTimes(scheduleTimes, { status: req.body.status || 'scheduled', context: 'Full-day planner' });
+      console.log('[generate-day:schedule]', { date, start, end, status: req.body.status || 'scheduled', now: nowLocalMinute(), first: scheduleTimes[0] || null, last: scheduleTimes[scheduleTimes.length - 1] || null });
 
       updateJob(job.id, { progress: 5, message: `Generating ${count} post ideas...` });
       const batchResult = await generateUniqueBrainGlitchBatch({ count, categories, topic: req.body.topic || '', generationMode });
@@ -937,6 +947,7 @@ app.post('/generate-day', requirePassword, async (req, res) => {
     const categories = [...new Set([...parseCategories(req.body.categories), ...parseCategories(req.body.categories_extra)])];
     const generationMode = requestedGenerationStyle(req.body);
     const scheduleTimes = randomScheduleSlots({ date, startTime: start, endTime: end, count });
+    validateFutureScheduleTimes(scheduleTimes, { status: req.body.status || 'scheduled', context: 'Full-day planner' });
     const batchResult = await generateUniqueBrainGlitchBatch({ count, categories, topic: req.body.topic || '', generationMode });
     const items = batchResult.items;
     let created = 0;

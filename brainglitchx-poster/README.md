@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.18
+
+Validates full-day planner schedule windows before generation so it cannot create already-due scheduled posts.
+
 # BrainGlitchX Poster HA Add-on v2.8.17
 
 Prevents accidentally past scheduled posts from being published immediately by the scheduler.
