@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.22
+
+Adds multi-select Queue filters with default draft/scheduled status selection.
+
 # BrainGlitchX Poster HA Add-on v2.8.21
 
 Fixes Post now from Edit Post by letting the publish claim set the posting status.

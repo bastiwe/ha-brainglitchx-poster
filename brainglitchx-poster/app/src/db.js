@@ -72,26 +72,31 @@ function normalizeStatus(status = 'draft') {
   return allowed.includes(status) ? status : 'draft';
 }
 
-export function listPosts({ status = '', category = '' } = {}) {
+function addInFilter(sql, params, column, values, prefix) {
+  const list = (Array.isArray(values) ? values : [values]).map(v => String(v || '').trim()).filter(Boolean);
+  if (!list.length) return sql;
+  const placeholders = list.map((_, i) => `@${prefix}${i}`);
+  list.forEach((value, i) => { params[`${prefix}${i}`] = value; });
+  return `${sql} AND ${column} IN (${placeholders.join(', ')})`;
+}
+
+export function listPosts({ status = '', statuses = [], category = '', categories = [] } = {}) {
   let sql = `SELECT * FROM posts WHERE 1=1`;
   const params = {};
-  if (status) { sql += ` AND status = @status`; params.status = status; }
-  if (category) { sql += ` AND category = @category`; params.category = category; }
+  sql = addInFilter(sql, params, 'status', statuses.length ? statuses : status, 'status');
+  sql = addInFilter(sql, params, 'category', categories.length ? categories : category, 'category');
   sql += ` ORDER BY COALESCE(scheduled_at, created_at) DESC`;
   return db.prepare(sql).all(params);
 }
 
-export function getCategories({ status = '' } = {}) {
+export function getCategories({ status = '', statuses = [] } = {}) {
   let sql = `
     SELECT category, COUNT(*) as count
     FROM posts
     WHERE category IS NOT NULL AND trim(category) <> ''
   `;
   const params = {};
-  if (status) {
-    sql += ` AND status = @status`;
-    params.status = status;
-  }
+  sql = addInFilter(sql, params, 'status', statuses.length ? statuses : status, 'status');
   sql += `
     GROUP BY category
     ORDER BY category COLLATE NOCASE ASC

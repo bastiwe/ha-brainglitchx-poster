@@ -11,7 +11,7 @@ get_opt() {
 
 export PORT=3000
 export HA_INGRESS=true
-export ADDON_VERSION="2.8.21"
+export ADDON_VERSION="2.8.22"
 export APP_PASSWORD="$(get_opt app_password change-me-now)"
 export TIMEZONE="$(get_opt timezone Europe/Berlin)"
 export DRY_RUN="$(get_opt dry_run true)"

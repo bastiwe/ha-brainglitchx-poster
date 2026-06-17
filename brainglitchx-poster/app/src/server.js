@@ -520,6 +520,17 @@ function tabNav(req, active) {
   return `<nav class="tabs">${tabs.map(([id, label]) => `<a class="tab ${active === id ? 'active' : ''}" href="${appLink(req, { tab: id })}">${label}</a>`).join('')}</nav>`;
 }
 
+function queryList(value) {
+  return (Array.isArray(value) ? value : [value]).map(v => String(v || '').trim()).filter(Boolean);
+}
+
+function selectedQueueStatuses(query = {}) {
+  const allowed = new Set(['draft', 'scheduled', 'posting', 'posted', 'failed']);
+  const requested = queryList(query.status).filter(value => allowed.has(value));
+  const hasFilter = Object.prototype.hasOwnProperty.call(query, 'filters') || Object.prototype.hasOwnProperty.call(query, 'status');
+  return requested.length || hasFilter ? requested : ['scheduled', 'draft'];
+}
+
 
 function headerBlock(req) {
   return `<div class="topbar"><div><strong>Version:</strong> ${escapeHtml(APP_VERSION || 'unknown')} · <strong>DRY_RUN:</strong> ${escapeHtml(process.env.DRY_RUN || '')} · <strong>Scheduler time:</strong> ${escapeHtml(nowLocalMinute())} · <strong>TIMEZONE:</strong> ${escapeHtml(appTimezone())}</div><form method="post" action="${rel(req, 'scheduler/run-now')}${keyQuery(req)}" class="inline-form">${hiddenKey(req)}<button type="submit">Run scheduler now</button><span class="hint">Useful for testing due posts immediately.</span></form></div>`;
@@ -527,10 +538,12 @@ function headerBlock(req) {
 
 app.get('/', requirePassword, (req, res) => {
   const tab = req.query.tab || 'queue';
-  const status = req.query.status || '';
-  const category = req.query.category || '';
+  const statuses = selectedQueueStatuses(req.query);
+  const categoriesSelected = queryList(req.query.category);
+  const selectedStatusSet = new Set(statuses);
+  const selectedCategorySet = new Set(categoriesSelected);
 
-  const rows = listPosts({ status, category }).map(p => `
+  const rows = listPosts({ statuses, categories: categoriesSelected }).map(p => `
     <tr>
       <td><span class="badge ${p.status}">${p.status}</span></td>
       <td>${scheduleCell(p.scheduled_at)}</td>
@@ -546,9 +559,10 @@ app.get('/', requirePassword, (req, res) => {
       </td>
     </tr>`).join('');
 
-  const categories = getCategories({ status });
+  const categories = getCategories({ statuses });
   const stats = getStats();
-  const categoryOptions = categories.map(c => `<option value="${escapeAttr(c.category)}" ${category === c.category ? 'selected' : ''}>${escapeHtml(c.category)} (${c.count})</option>`).join('');
+  const statusOptions = ['draft','scheduled','posting','posted','failed'].map(s => `<option value="${s}" ${selectedStatusSet.has(s) ? 'selected' : ''}>${s}</option>`).join('');
+  const categoryOptions = `<option value="" ${categoriesSelected.length ? '' : 'selected'}>All categories</option>` + categories.map(c => `<option value="${escapeAttr(c.category)}" ${selectedCategorySet.has(c.category) ? 'selected' : ''}>${escapeHtml(c.category)} (${c.count})</option>`).join('');
   const statsRows = stats.map(s => `<tr><td>${escapeHtml(s.category)}</td><td>${s.total}</td><td>${s.draft}</td><td>${s.scheduled}</td><td>${s.posted}</td><td>${s.failed}</td><td>${Number(s.impressions || 0).toLocaleString('en-US')}</td><td>${Number(s.likes || 0).toLocaleString('en-US')}</td><td>${Number(s.reposts || 0).toLocaleString('en-US')}</td></tr>`).join('');
   const analytics = analyticsOverview();
   const analyticsTotals = analytics.totals || {};
@@ -566,8 +580,9 @@ app.get('/', requirePassword, (req, res) => {
         <form method="get" action="${appLink(req)}" class="filters">
           ${req.query.key ? `<input type="hidden" name="key" value="${escapeAttr(req.query.key)}">` : ''}
           <input type="hidden" name="tab" value="queue">
-          <select name="status"><option value="">All statuses</option>${['draft','scheduled','posting','posted','failed'].map(s => `<option value="${s}" ${status === s ? 'selected' : ''}>${s}</option>`).join('')}</select>
-          <select name="category"><option value="">All categories</option>${categoryOptions}</select>
+          <input type="hidden" name="filters" value="1">
+          <label>Status <select name="status" multiple size="5">${statusOptions}</select></label>
+          <label>Categories <select name="category" multiple size="5">${categoryOptions}</select><small>Select specific categories to narrow the queue.</small></label>
           <button type="submit">Filter</button>
         </form>
         <table><thead><tr><th>Status</th><th>Schedule</th><th>Category</th><th>Text</th><th>Image</th><th>Metrics</th><th>X/Error</th><th></th></tr></thead><tbody>${rows}</tbody></table>
