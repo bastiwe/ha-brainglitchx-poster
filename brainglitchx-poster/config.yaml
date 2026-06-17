@@ -1,5 +1,5 @@
 name: BrainGlitchX Poster
-version: "2.8.20"
+version: "2.8.21"
 slug: brainglitchx_poster
 description: AI-powered X post generator, queue, scheduler and analytics sync for BrainGlitchX. HA Ingress path/link, exactly-once publish safety, Ingress-safe tabs and image links.
 url: https://bastiwe.de

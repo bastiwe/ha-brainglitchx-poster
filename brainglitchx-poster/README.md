@@ -1,3 +1,7 @@
+# BrainGlitchX Poster HA Add-on v2.8.21
+
+Fixes Post now from Edit Post by letting the publish claim set the posting status.
+
 # BrainGlitchX Poster HA Add-on v2.8.20
 
 Adds cheaper optional OpenAI model choices: gpt-5.4-nano for text and gpt-image-1-mini for image generation.

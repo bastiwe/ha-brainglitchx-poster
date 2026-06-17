@@ -358,7 +358,7 @@ function requestedGenerationStyle(body = {}) {
 
 function statusForGenerate(body = {}) {
   const mode = requestedGenerateMode(body);
-  if (mode === 'post_now') return 'posting';
+  if (mode === 'post_now') return body.status || 'draft';
   if (mode === 'schedule') return 'scheduled';
   return body.status || 'draft';
 }
@@ -673,7 +673,7 @@ app.get('/edit/:id', requirePassword, (req, res) => {
 app.post('/posts', requirePassword, upload.single('image'), async (req, res) => {
   const image_path = req.file ? path.join('public', 'uploads', req.file.filename).replaceAll('\\','/') : null;
   const action = req.body.action || 'save';
-  const status = action === 'post_now' ? 'posting' : action === 'schedule' ? 'scheduled' : (req.body.status || 'draft');
+  const status = action === 'schedule' ? 'scheduled' : (req.body.status || 'draft');
   const scheduled_at = action === 'schedule' ? (req.body.scheduled_at || addMinutesToLocal(nowLocalMinute(), 15)) : (req.body.scheduled_at || null);
   const created = createPost({
     status,
@@ -714,7 +714,7 @@ app.post('/edit/:id', requirePassword, upload.single('image'), async (req, res) 
       return res.status(500).send(page(req, 'Image generation failed', `<p>${escapeHtml(readableError(e))}</p><p><a href="${rel(req, `edit/${existing.id}`)}${keyQuery(req)}">Back to edit</a></p>`));
     }
   }
-  const status = action === 'post_now' ? 'posting' : action === 'schedule' ? 'scheduled' : (req.body.status || 'draft');
+  const status = action === 'schedule' ? 'scheduled' : (req.body.status || 'draft');
   const scheduled_at = action === 'schedule' ? (req.body.scheduled_at || addMinutesToLocal(nowLocalMinute(), 15)) : (req.body.scheduled_at || null);
   updatePost(existing.id, {
     status,
